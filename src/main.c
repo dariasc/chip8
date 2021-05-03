@@ -30,8 +30,36 @@ void chip_execute() {
       sdl_clear();
       break;
     case 0x1:
-      // jmp
+      // jmp to NNN
       ip = nnn;
+      break;
+    case 0xb:
+      // jump to NNN
+      ip = nnn + registers[0];
+      break;
+    case 0x3:
+      // skip instruction if register X == NN
+      if (registers[x] == nn) {
+	ip += 2;
+      }
+      break;
+    case 0x4:
+      // skip instruction if register X != NN
+      if (registers[x] != nn) {
+	ip +=2;
+      }
+      break;
+    case 0x5:
+      // skip instruction if register X == register Y
+      if (registers[x] == registers[y]) {
+	ip += 2;
+      }
+      break;
+    case 0x9:
+      // skip instruction if register X != register Y
+      if (registers[x] != registers[y]) {
+	ip += 2;
+      }
       break;
     case 0x6:
       // set register X to NN
@@ -40,6 +68,47 @@ void chip_execute() {
     case 0x7:
       // add NN to register X
       registers[x] += nn;
+      break;
+    case 0x8:
+      // register operations
+      switch (n) {
+	case 0x0:
+	  registers[x] = registers[y];
+	  break;
+	// bitwise operations
+	case 0x1:
+	  registers[x] |= registers[y]; 
+	  break;
+	case 0x2:
+	  registers[x] &= registers[y];
+	  break;
+	case 0x3:
+	  registers[x] ^= registers[y];
+	  break;
+	case 0x4:
+	  registers[0xF] = 0;
+	  if ((int) registers[x] + (int) registers[y] > 256) {
+	    registers[0xF] = 1;
+	  }
+	  registers[x] += registers[y];
+	  break;
+	case 0x5:
+	  registers[0xF] = 0;
+	  if (registers[x] > registers[y]) {
+	    registers[0xF] = 1;
+	  }
+	  registers[x] -= registers[y];
+	  break;
+	case 0x7:
+	  registers[0xF] = 0;
+	  if (registers[y] > registers[x]) {
+	    registers[0xF] = 1;
+	  }
+	  registers[x] = registers[y] - registers[x];
+	  break;
+	default:
+	  printf("[*] instruction not implemented 0x%04x\n", op);
+      }
       break;
     case 0xa:
       // set index register to NNN
@@ -56,7 +125,7 @@ void chip_execute() {
       }
       break;
     default:
-      printf("unknown instruction\n");
+      printf("[*] instruction not implemented 0x%04x\n", op);
   }
 }
 
