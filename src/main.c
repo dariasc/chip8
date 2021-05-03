@@ -13,6 +13,9 @@ uint16 index_register = 0x0;
 uint8 memory[4096];
 uint8 registers[0x10];
 
+uint8 delay_timer = 0x0;
+uint8 sound_timer = 0x0;
+
 void chip_execute() {
   uint16 op = memory[ip] << 8 | memory[ip+1];
   ip += 2;
@@ -107,7 +110,7 @@ void chip_execute() {
 	  registers[x] = registers[y] - registers[x];
 	  break;
 	default:
-	  printf("[*] instruction not implemented 0x%04x\n", op);
+	  printf("[*] register instruction not implemented 0x%04x\n", op);
       }
       break;
     case 0xa:
@@ -117,11 +120,44 @@ void chip_execute() {
     case 0xd:
       // draw()
       {
-	registers[0xF] = 0;
 	uint8 sprite[n];
 	memcpy(sprite, memory + index_register, sizeof(uint8) * n);
 	uint8 unset = sdl_draw(registers[x], registers[y], sprite, n);
 	registers[0xF] = unset;
+      }
+      break;
+    case 0xf:
+      switch (nn) {
+	case 0x07:
+	  // store delay_timer into register X
+	  registers[x] = delay_timer;
+	  break;
+	case 0x15:
+	  // set delay_timer to register X
+	  delay_timer = registers[x];
+	  break;
+	case 0x18:
+	  // set sound_timer to register X
+	  sound_timer = registers[x];
+	  break;
+	case 0x1e:
+	  // add register X to index register
+	  index_register += registers[x];
+	  break;
+	case 0x55:
+	  // store values from register 0 -> X into memory at I
+	  for (int i = 0; i <= x; i++) {
+	    memory[index_register+i] = registers[i];
+	  }
+	  break;
+	case 0x65:
+	  // load values into register 0 -> X from memory at I
+	  for (int i = 0; i <= x; i++) {
+	    registers[i] = memory[index_register+i];
+	  }
+	  break;
+	default:
+	  printf("[+] special instruction not implemented 0x%04x\n", op);
       }
       break;
     default:
@@ -136,6 +172,12 @@ void chip_execute_frame() {
   for (int i = 0; i < 700/60; i++) {
     chip_execute();
   }
+  
+  if (delay_timer != 0x0)
+    delay_timer--;
+
+  if (sound_timer != 0x0)
+    sound_timer--;
 }
 
 int main(int argc, char* argv[]) {
