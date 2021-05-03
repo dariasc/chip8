@@ -71,7 +71,7 @@ void chip_execute_frame() {
 
 int main(int argc, char* argv[]) {
   if (argc != 2) {
-    printf("bad arguments");
+    printf("bad arguments\n");
     return 1;
   }
 
